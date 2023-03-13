@@ -320,11 +320,21 @@ def run_websocket_client():
     def on_error(ws, error):
         print(f"Websocket error: {error}")
 
+    def on_close(ws, close_status_code, close_msg):
+        print(f"Websocket close: ({close_status_code}) {close_msg}")
 
     def ws_thread(*args):
-        print("Connecting to websocket")
-        ws = websocket.WebSocketApp(STREAMERBOT_WS_URL, on_open = ws_open, on_message = ws_message, on_error=on_error)
-        ws.run_forever()
+        ws = websocket.WebSocketApp(STREAMERBOT_WS_URL, on_open=ws_open, on_message=ws_message, on_error=on_error, on_close=on_close)
+
+        while True:
+            print("Connecting to websocket")
+            try:
+                ws.run_forever(reconnect=5)
+            except Exception as e:
+                print(f"Websocket thread exception: {traceback.format_exception(type(e), e, e.__traceback__)}")
+            time.sleep(5)
+            
+        print("end of thread")
 
     # Start a new thread for the WebSocket interface
     _thread.start_new_thread(ws_thread, ())

@@ -242,7 +242,7 @@ def run_bounders():
             if event.type == pygame.QUIT:
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                bounders_to_deploy += [ random.choice(range(len(x))) ]
+                bounders_to_deploy += [ random.choice(range(len(lookup_table))) ]
             elif event.type == pygame.KEYDOWN:
                 SOUND_ENABLED = not SOUND_ENABLED
                     

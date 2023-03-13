@@ -219,9 +219,29 @@ def run_bounders():
         492: bounder_left_look_down,
     }
 
+    altres_bounder_up_straight = pygame.image.load("altres/still-stare.png")
+    altres_bounder_up_look_down = pygame.image.load("altres/still-stare-down.png")
+
+    altres_bounder_right = pygame.image.load("altres/bounder_right.png")
+    altres_bounder_right_look_down = pygame.image.load("altres/bounder_right_look_down.png")
+
+    altres_bounder_left = pygame.image.load("altres/bounder_left.png")
+    altres_bounder_left_look_down = pygame.image.load("altres/bounder_left_look_down.png")
+
+    altres_img_lookup = {
+        495: altres_bounder_up_straight,
+        496: altres_bounder_up_look_down,
+
+        493: altres_bounder_right,
+        494: altres_bounder_right_look_down,
+
+        491: altres_bounder_left,
+        492: altres_bounder_left_look_down,
+    }
+
     lookup_table = [
         img_lookup,
-        # OTHER_img_lookup
+        altres_img_lookup
     ]
 
 
@@ -292,6 +312,12 @@ def run_websocket_client():
             msgj = json.loads(message)
 
             try:
+                if msgj['data']['user_name'].lower() == "altres":
+                    bounder_idx = 1
+            except:
+                pass
+
+            try:
                 if msgj['event']['type'] == "Raid":
                     num_bounders = msgj['data']['viewerCount']
                     if num_bounders <= 10:
@@ -331,6 +357,9 @@ def run_websocket_client():
 
         except Exception as e:
             print(f"Websocket message exception: {traceback.format_exception(type(e), e, e.__traceback__)}")
+
+        if num_bounders > 100:
+            num_bounders = 100
 
         bounders_to_deploy += [bounder_idx] * num_bounders
 

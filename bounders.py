@@ -18,7 +18,9 @@ SCREEN_HEIGHT=720
 BOUNDERS_MAX_ALIVE = 50
 
 SOUND_MAX_CHANELS = 8
-SOUND_VOLUME = 0.25
+SOUND_VOLUME = 1.0/2/2/2
+
+SOUND_ENABLED = True
 
 
 bounder_still_anim = [
@@ -147,7 +149,8 @@ class Bounder:
         if self.anim is None:
             self.anim = random.choice(anim_frames)
             self.anim_index = 0
-            self.bounce_snd.play()
+            if SOUND_ENABLED:
+                self.bounce_snd.play()
         
         self.x += self.anim[self.anim_index][0]
         self.y += self.anim[self.anim_index][1]
@@ -179,6 +182,7 @@ bounders_to_deploy = 0
 
 def run_bounders():
     global bounders_to_deploy
+    global SOUND_ENABLED
         
     pygame.init()
 
@@ -231,6 +235,9 @@ def run_bounders():
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 bounders_to_deploy += 1
+            elif event.type == pygame.KEYDOWN:
+                SOUND_ENABLED = not SOUND_ENABLED
+                    
 
 
 

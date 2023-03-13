@@ -1,11 +1,13 @@
-import sys, pygame
-import random
-import websocket
 import _thread
-import time
 import json
+import random
+import re
+import sys
+import time
 import traceback
 
+import websocket
+import pygame
 
 STREAMERBOT_WS_URL = "ws://127.0.0.1:8080/"
 
@@ -178,7 +180,7 @@ class Bounder:
 
 
 
-bounders_to_deploy = 0
+bounders_to_deploy = []
 
 def run_bounders():
     global bounders_to_deploy
@@ -217,6 +219,12 @@ def run_bounders():
         492: bounder_left_look_down,
     }
 
+    lookup_table = [
+        img_lookup,
+        # OTHER_img_lookup
+    ]
+
+
 
     bounce_snd = pygame.mixer.Sound("res/bounder_bounce.wav")
     bounce_snd.set_volume(SOUND_VOLUME)
@@ -234,7 +242,7 @@ def run_bounders():
             if event.type == pygame.QUIT:
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                bounders_to_deploy += 1
+                bounders_to_deploy += [ random.choice(range(len(x))) ]
             elif event.type == pygame.KEYDOWN:
                 SOUND_ENABLED = not SOUND_ENABLED
                     
@@ -246,14 +254,14 @@ def run_bounders():
 
         update_count += 1
         if update_count > 50*5:
-            print('alive', len(bounders), 'todeploy', bounders_to_deploy)
+            print('alive', len(bounders), 'todeploy', len(bounders_to_deploy))
             update_count = 0
 
 
-        if bounders_to_deploy > 0 and len(bounders) < BOUNDERS_MAX_ALIVE:
+        if len(bounders_to_deploy) > 0 and len(bounders) < BOUNDERS_MAX_ALIVE:
             if random.choice([True, False,False,False,False,False,False,False,False,False]):
-                bounders.append(Bounder(img_lookup, bounce_snd))
-                bounders_to_deploy -= 1
+                idx = bounders_to_deploy.pop(0)
+                bounders.append(Bounder(lookup_table[idx], bounce_snd))
 
 
         for b in bounders:
@@ -276,27 +284,55 @@ def run_websocket_client():
     def ws_message(ws, message):
         global bounders_to_deploy
         print("WebSocket msg: %s" % message)
+
+        num_bounders = 0
+        bounder_idx = 0
+
         try:
             msgj = json.loads(message)
-            if msgj['event']['type'] == "Raid":
-                num_bounders = msgj['data']['viewerCount']
-                if num_bounders <= 10:
-                    num_bounders = 10
-                bounders_to_deploy += num_bounders
-            elif msgj['event']['type'] == "Cheer":
-                num_bounders = msgj['data']['message']['bits'] // 10
-                if num_bounders <= 0:
-                    num_bounders = 1
-                bounders_to_deploy += num_bounders
-            elif msgj['event']['type'] in ("Sub", "ReSub", "GiftSub"):
-                num_bounders = msgj['data']['subTier']
-                if num_bounders <= 0:
-                    num_bounders = 1
-                num_bounders *= 5
-                bounders_to_deploy += num_bounders
+
+            try:
+                if msgj['event']['type'] == "Raid":
+                    num_bounders = msgj['data']['viewerCount']
+                    if num_bounders <= 10:
+                        num_bounders = 10
+            except:
+                pass
+
+            try:
+                if msgj['event']['type'] == "Cheer":
+                    num_bounders = msgj['data']['message']['bits'] // 10
+                    if num_bounders <= 0:
+                        num_bounders = 1
+            except:
+                pass
+
+            try:
+                if msgj['event']['type'] in ("Sub", "ReSub", "GiftSub"):
+                    num_bounders = msgj['data']['subTier']
+                    if num_bounders <= 0:
+                        num_bounders = 1
+                    num_bounders *= 5
+            except:
+                pass
+
+            try:
+                if msgj['event']['type'] == "RewardRedemption":
+                    title = msgj['data']['reward']['title']
+                    if "Bounder" in title:
+                        num_bounders = 1
+                        m = re.search(r'\d+', title)
+                        if m is not None:
+                            num_bounders = int(m.group(0))
+                        if num_bounders <= 0:
+                            num_bounders = 1
+            except:
+                pass
+
         except Exception as e:
             print(f"Websocket message exception: {traceback.format_exception(type(e), e, e.__traceback__)}")
 
+        bounders_to_deploy += [bounder_idx] * num_bounders
 
 
     def ws_open(ws):
@@ -313,6 +349,8 @@ def run_websocket_client():
                             "Sub",
                             "ReSub",
                             "GiftSub",
+
+                            "RewardRedemption",
                             ]
                         },
                     }''')
